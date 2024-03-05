@@ -1,6 +1,7 @@
 ﻿using Customers.Worker;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -11,7 +12,7 @@ builder.Services.AddMassTransit(x =>
     x.AddEntityFrameworkOutbox<AppDbContext>(o =>
     {
         o.DuplicateDetectionWindow = TimeSpan.FromSeconds(30);
-        o.UsePostgres();
+        o.UsePostgres().DisableInboxCleanupService();
     });
     
     x.SetKebabCaseEndpointNameFormatter();
@@ -21,9 +22,20 @@ builder.Services.AddMassTransit(x =>
     x.AddConsumers(assembly);
     x.AddActivities(assembly);
     
-    x.UsingAmazonSqs((ctx, cfg) =>
+    /*x.UsingAmazonSqs((ctx, cfg) =>
     {
         cfg.Host("eu-west-2", _ => {});
+        cfg.ConfigureEndpoints(ctx);
+    });*/
+    
+    x.UsingRabbitMq((ctx, cfg) =>
+    {
+        cfg.Host(builder.Configuration.GetValue<string>("RabbitMQ:Host"), "/", h =>
+        {
+            h.Username("rabbitmq");
+            h.Password("rabbitmq");
+        });
+        
         cfg.ConfigureEndpoints(ctx);
     });
 });

@@ -32,7 +32,14 @@ public class CustomerService : ICustomerService
         await _dbContext.Customers.AddAsync(customer);
         
         var message = new CustomerCreated(customer.Id, customer.FullName, customer.Email, customer.DateOfBirth);
-        await _publishEndpoint.Publish(message);
+        
+        // todo NEVER DO THIS PLEASE :)
+        for (int i = 0; i < 100; i++)
+        {
+            // Publish the message to the bus (RabbitMQ)
+            await _publishEndpoint.Publish(message);
+        }
+        //await _publishEndpoint.Publish(message);
         
         var result = await _dbContext.SaveChangesAsync();
         return result > 0;
